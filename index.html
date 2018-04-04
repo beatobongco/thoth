@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css">
+  <link rel="stylesheet" type="text/css" href="main.css">
+</head>
+<body>
+  <div
+    id="app"
+    @keydown.esc.prevent="closeModal"
+  >
+    <div class="wrapper">
+      <div
+        class="modal-wrapper"
+        v-if="modal"
+        @click.self="closeModal"
+      >
+        <div
+          class="modal"
+          v-if="modal.mode === 'search'"
+          :style="{top: modal.data.top, left: modal.data.left}"
+        >
+          <ul>
+            <li v-for="content in modal.data.contents">
+              <a href="#" @click.prevent="insertLink(store[content.ref].id, modal.data.selection)">{{store[content.ref].title}}</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="row main-row">
+        <div class="col-xs-12">
+          <h1>thoth</h1>
+        </div>
+        <div class="col-xs-12">
+          <p v-if="lastPull">
+            <small>
+              Search database: {{lastPull}}
+              <span v-if="autosaveDate">
+                | Last autosaved: {{autosaveDate}}
+              </span>
+            </small>
+          </p>
+        </div>
+        <div class="col-xs-12 col-sm-6 main-col">
+          <textarea
+            ref="editor"
+            class="editor"
+            v-model="input"
+            @keydown.ctrl.shift.l="multilineFormat('* ')"
+            @keydown.tab.shift.prevent="multilineFormat('\t', doDelete=true)"
+            @keydown.tab.exact.prevent="multilineFormat('\t')"
+            @keydown.ctrl.b="formatText('**')"
+            @keydown.ctrl.i="formatText('*')"
+            @keydown.ctrl.191="formatText('\n```\n')"
+            @keydown.ctrl.k.prevent="triggerModal('search')"
+            @keydown.ctrl.l.prevent="highlightLine"
+            @keydown.ctrl.s.prevent="copyAndGo"
+            @keydown.ctrl.e.prevent="toggleRaw"
+            @blur="hideCaretClone"
+            @focus="markedWithCaret"
+          ></textarea>
+        </div>
+        <div class="col-xs-12 col-sm-6">
+          <div
+            v-if="showRaw"
+            class="raw">{{output}}</div>
+          <div
+            v-else
+            class="output"
+            v-html="output"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.1.6/lunr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.19/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js"></script>
+<script src="textarea-caret-position.js"></script>
+<script>
+  /* TODO:
+  Make this usable not only for me (can load lunr lang)
+  put line numbers
+  1. localstorage autosave (snapshots and gallery)
+  3. for selfsearch also `notes`, dont include stuff with no title
+  4. keyboard control for selecting links after ctrl+O
+  * allow custom links with ctrl+o
+  6. ctrl+l for selecting lines like in sublime https://stackoverflow.com/questions/13650534/how-to-select-line-of-text-in-textarea
+
+  * Make the textarea dark or a color that is more noticable and friendly to eyes
+     or dark theme
+     Bullet point a whole selection per line
+  */
+
+  // SETTINGS
+  var AUTOSAVE_INTERVAL = 5000
+  var POST_URL = 'https://github.com/beatobongco/TIL/new/master/day_notes'
+  var CARET = '<span class="blinking-cursor">|</span>'
+  // util
+  function getSelectionText () {
+    if (window.getSelection) {
+      return window.getSelection().toString()
+    } else if (document.selection && document.selection.type !== 'Control') {
+      return document.selection.createRange().text
+    }
+  }
+
+  if (!String.prototype.splice) {
+    /**
+     * {JSDoc}
+     *
+     * The splice() method changes the content of a string by removing a range of
+     * characters and/or adding new characters.
+     *
+     * @this {String}
+     * @param {number} start Index at which to start changing the string.
+     * @param {number} delCount An integer indicating the number of old chars to remove.
+     * @param {string} newSubStr The String that is spliced in.
+     * @return {string} A new string with the spliced substring.
+     */
+    String.prototype.splice = function(start, delCount, newSubStr) {
+      return this.slice(0, start) + newSubStr + this.slice(start + Math.abs(delCount))
+    }
+  }
+
+  var app = new Vue ({
+    el: '#app',
+    data: {
+      autosave: null,
+      autosaving: false,
+      autosaveDate: null,
+      toSearch: null,
+      modal: null,
+      store: null,
+      modalContents: null,
+      lastPull: null,
+      idx: null,
+      showRaw: false,
+      input: '',
+      output: '',
+    },
+    watch: {
+      input: function () {
+        this.markedWithCaret()
+      }
+    },
+    mounted: function () {
+      localforage
+        .getItem('lunr')
+        .then(function (value) {
+          if (value) {
+            app.idx = lunr.Index.load(JSON.parse(value))
+            localforage
+              .getItem('store')
+              .then(function (value) {
+                app.store = JSON.parse(value)
+                localforage
+                  .getItem('lastPull')
+                  .then(function (value) {
+                    app.lastPull = new Date(value).toLocaleString()
+                  })
+              })
+          } else {
+            var url = 'https://beatobongco.com/selfsearch/'
+            window.alert('No data detected. You will be redirected to ' + url)
+            window.location.href = url
+          }
+        })
+
+      localforage.getItem('thoth', function (err, val) {
+        app.input = val
+        app.autosave = setInterval(function () {
+          localforage.setItem('thoth', app.input).then(function() {
+            app.autosaveDate = new Date().toLocaleString()
+          })
+        }, AUTOSAVE_INTERVAL)
+      })
+    },
+    methods: {
+      focusEditor: function () {
+        this.$refs.editor.focus()
+      },
+      highlightLine: function () {
+        // TODO: fix
+        var tarea = this.$refs.editor
+        var _lineNum = tarea.value.substr(0, tarea.selectionEnd).split('\n').length - 1 // this is wrong
+        console.log(_lineNum)
+        function getLineStartEnd (lineNum) {
+          var lines = tarea.value.split('\n')
+
+          // calculate start/end
+          var startPos = 0
+          var endPos = 0
+
+          for (var x = 0; x < lines.length; x++) {
+            if (x === lineNum) {
+              break
+            }
+            startPos += (lines[x].length + 1)
+          }
+
+          var max = lines.length - 1
+          endPos = lines[lineNum > max ? max : lineNum].length + startPos
+
+          return [startPos, endPos]
+        }
+
+        var positions = getLineStartEnd(_lineNum)
+
+        if (tarea.selectionEnd === positions[1]) {
+          var tmpStart = tarea.selectionStart
+          positions = getLineStartEnd(_lineNum + 1)
+          positions[0] = tmpStart
+        }
+
+        tarea.selectionStart = positions[0]
+        tarea.selectionEnd = positions[1]
+      },
+      markedWithCaret: function () {
+        var _val = this.input
+        this.$nextTick(function () {
+          var newVal = _val.splice(this.$refs.editor.selectionEnd, 0, CARET)
+          this.output = marked(newVal)
+        })
+      },
+      hideCaretClone: function () {
+        this.output = this.output.replace('<span class="blinking-cursor">|</span>', '')
+      },
+      multilineFormat: function (modifier, doDelete) {
+        // TODO: keep the highlight
+        var selectedText = getSelectionText()
+        var sel = this.$refs.editor
+
+        if (selectedText) {
+          var newText = ''
+          var _splitted = selectedText.split('\n')
+          for (var i = 0; i < _splitted.length; i++) {
+            if (doDelete) {
+              newText += _splitted[i].replace('\t', '')
+            } else {
+              newText += modifier + _splitted[i]
+            }
+
+            if (i < _splitted.length - 1) {
+              newText += '\n'
+            }
+          }
+          this.input = this.input.splice(sel.selectionStart, sel.selectionEnd - sel.selectionStart, newText)
+          this.updateCaretPosition(newText.length)
+        } else {
+          this.appendText(modifier)
+        }
+      },
+      formatText: function (modifier) {
+        var selectedText = getSelectionText()
+        var sel = this.$refs.editor
+        var newText = null
+        if (selectedText) {
+          newText = modifier + selectedText + modifier
+          this.input = this.input.splice(sel.selectionStart, sel.selectionEnd - sel.selectionStart, newText)
+          this.updateCaretPosition(newText.length)
+        } else {
+          this.appendText(modifier)
+        }
+      },
+      updateCaretPosition: function (position) {
+        let end = this.$refs.editor.selectionStart + position
+        this.$nextTick(function () {
+          this.$refs.editor.selectionEnd = end
+        })
+      },
+      appendText: function (text) {
+        this.input = this.input.splice(this.$refs.editor.selectionEnd, 0, text)
+        this.updateCaretPosition(text.length)
+      },
+      moveCaret: function (val) {
+        this.$refs.editor.selectionEnd = this.$refs.editor.selectionEnd + val
+      },
+      insertLink: function (url, selectionObj) {
+        var text = '[' + selectionObj.text + '](' + url + ')'
+        this.input = this.input.splice(selectionObj.start,
+                                       selectionObj.end - selectionObj.start,
+                                       text)
+        this.modal = false
+        this.$refs.editor.focus()
+        this.updateCaretPosition(text.length)
+      },
+      triggerModal: function (mode) {
+        var selectedText = getSelectionText()
+        var sel = this.$refs.editor
+        var selectionObj = {
+          text: selectedText,
+          start: sel.selectionStart,
+          end: sel.selectionEnd
+        }
+
+        if (this.modal) {
+          this.modal = false
+        } else if (mode === 'search' && selectedText.length > 0) {
+          var carcors = getCaretCoordinates(this.$refs.editor, this.$refs.editor.selectionEnd)
+          var _top = document.querySelector('.main-col').getBoundingClientRect().top
+          var results = this.idx.search(selectedText)
+          if (results.length > 0) {
+            this.modal = {
+              mode: mode,
+              data: {
+                selection: selectionObj,
+                contents: results,
+                top: carcors.top + _top + 'px',
+                left: carcors.left + 'px'
+              }
+            }
+          }
+        }
+      },
+      closeModal: function () {
+        this.modal = false
+      },
+      copyAndGo: function () {
+        this.$refs.editor.select()
+        document.execCommand('Copy')
+        window.open(POST_URL)
+      },
+      toggleRaw: function () {
+        this.showRaw = !this.showRaw
+      }
+    }
+  })
+
+document.body.addEventListener('keydown', function (e) {
+  app.$refs.editor.focus()
+})
+</script>
+</body>
+</html>
+
