@@ -247,7 +247,7 @@
             }
           }
           this.input = this.input.splice(sel.selectionStart, sel.selectionEnd - sel.selectionStart, newText)
-          this.updateCaretPosition(newText.length)
+          this.updateCaretPosition(newText.length, sel.selectionStart)
         } else {
           this.appendText(modifier)
         }
@@ -264,10 +264,13 @@
           this.appendText(modifier)
         }
       },
-      updateCaretPosition: function (position) {
-        let end = this.$refs.editor.selectionStart + position
+      updateCaretPosition: function (end, start) {
+        let _end = this.$refs.editor.selectionStart + end
         this.$nextTick(function () {
-          this.$refs.editor.selectionEnd = end
+          this.$refs.editor.selectionEnd = _end
+          if (start) {
+            this.$refs.editor.selectionStart = start
+          }
         })
       },
       appendText: function (text) {
