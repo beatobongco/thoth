@@ -28,25 +28,27 @@
           </ul>
         </div>
       </div>
-      <div class="row main-row">
-        <div class="col-xs-12">
+      <div class="offset-container">
+        <div class="flex">
           <h1>thoth</h1>
-        </div>
-        <div class="col-xs-12">
-          <p v-if="lastPull">
+          <div class="last-pull" v-if="lastPull">
             <small>
               Search database: {{lastPull}}
               <span v-if="autosaveDate">
                 | Last autosaved: {{autosaveDate}}
               </span>
             </small>
-          </p>
+          </div>
         </div>
+      </div>
+      <div class="row main-row">
         <div class="col-xs-12 col-sm-6 main-col">
           <textarea
             ref="editor"
-            class="editor"
+            class="editor overflow-y"
             v-model="input"
+            @click="markedWithCaret"
+            @keydown="markedWithCaret"
             @keydown.ctrl.shift.l="multilineFormat('* ')"
             @keydown.tab.shift.prevent="multilineFormat('\t', doDelete=true)"
             @keydown.tab.exact.prevent="multilineFormat('\t')"
@@ -61,20 +63,21 @@
             @focus="markedWithCaret"
           ></textarea>
         </div>
-        <div class="col-xs-12 col-sm-6">
+        <div class="col-xs-12 col-sm-6 main-col">
           <div
             v-if="showRaw"
-            class="raw">{{output}}</div>
+            class="raw overflow-y">{{output}}</div>
           <div
             v-else
-            class="output"
+            ref="output"
+            class="output overflow-y"
             v-html="output"></div>
         </div>
       </div>
     </div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.1.6/lunr.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.19/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js"></script>
 <script src="textarea-caret-position.js"></script>
@@ -96,7 +99,7 @@
   // SETTINGS
   var AUTOSAVE_INTERVAL = 5000
   var POST_URL = 'https://github.com/beatobongco/TIL/new/master/day_notes'
-  var CARET = '<span class="blinking-cursor">|</span>'
+  var CARET = '<span class="cursor blinking-cursor">|</span>'
   // util
   function getSelectionText () {
     if (window.getSelection) {
@@ -127,6 +130,7 @@
   var app = new Vue ({
     el: '#app',
     data: {
+      outputUpdateTimeout: null,
       autosave: null,
       autosaving: false,
       autosaveDate: null,
@@ -176,6 +180,8 @@
           })
         }, AUTOSAVE_INTERVAL)
       })
+
+      this.$refs.editor.focus()
     },
     methods: {
       focusEditor: function () {
@@ -217,15 +223,43 @@
         tarea.selectionStart = positions[0]
         tarea.selectionEnd = positions[1]
       },
+      seekToOutput: function () {
+        // return setTimeout(function () {
+          // let elmnt = document.querySelector('.blinking-cursor')
+          // if (elmnt) {
+          //   elmnt.scrollIntoView(false)
+          // }
+          // let carcor = getCaretCoordinates(app.$refs.editor, app.$refs.editor.selectionEnd)
+          // let height = app.$refs.editor.getClientRects()[0].height
+          // console.log(carcor, 'height:', height)
+          // let out = app.$refs.output
+          // out.scrollTop = carcor.top - height // should only be positive when sumobra sa height
+          // console.log(out.scrollTop)
+        // }, 1000)
+        var cursorPos = document.querySelector('.blinking-cursor').getClientRects()[0].top
+        var outputRect = app.$refs.output.getClientRects()[0]
+        console.log(cursorPos, outputRect.height, outputRect.top)
+        if (cursorPos > outputRect.height) {
+          console.log('triggered')
+          document.querySelector('.blinking-cursor').scrollIntoView(false)
+        } else if (cursorPos < outputRect.top) {
+          document.querySelector('.blinking-cursor').scrollIntoView(true)
+        }
+      },
       markedWithCaret: function () {
+        // bug: caret shows in ``` code ```
         var _val = this.input
         this.$nextTick(function () {
           var newVal = _val.splice(this.$refs.editor.selectionEnd, 0, CARET)
           this.output = marked(newVal)
+          if (this.outputUpdateTimeout) {
+            clearTimeout(this.outputUpdateTimeout)
+          }
+          this.outputUpdateTimeout = this.seekToOutput()
         })
       },
       hideCaretClone: function () {
-        this.output = this.output.replace('<span class="blinking-cursor">|</span>', '')
+        this.output = this.output.replace(CARET, '')
       },
       multilineFormat: function (modifier, doDelete) {
         // TODO: keep the highlight
@@ -277,9 +311,6 @@
         this.input = this.input.splice(this.$refs.editor.selectionEnd, 0, text)
         this.updateCaretPosition(text.length)
       },
-      moveCaret: function (val) {
-        this.$refs.editor.selectionEnd = this.$refs.editor.selectionEnd + val
-      },
       insertLink: function (url, selectionObj) {
         var text = '[' + selectionObj.text + '](' + url + ')'
         this.input = this.input.splice(selectionObj.start,
@@ -330,10 +361,6 @@
       }
     }
   })
-
-document.body.addEventListener('keydown', function (e) {
-  app.$refs.editor.focus()
-})
 </script>
 </body>
 </html>
