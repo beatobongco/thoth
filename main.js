@@ -161,16 +161,11 @@ var app = new Vue({
         var outputRect = this.$refs.output.getClientRects()[0]
         var gc = document.querySelector('#ghostCaret')
         var ghostHeight = parseInt(getComputedStyle(gc).height)
-        console.log(ghostHeight)
-        // console.log(cursorPos, outputRect.height)
         if (cursorPos > outputRect.height) {
-          // console.log('triggered')
           cursor.scrollIntoView(false)
           this.$refs.output.scrollTop += cursorPos - outputRect.height + ghostHeight
         } else if (cursorPos < outputRect.top) {
-          console.log('true')
           cursor.scrollIntoView(true)
-          console.log(outputRect.top, cursorPos, outputRect.top - cursorPos)
           app.$refs.output.scrollTop -= outputRect.top - cursorPos + ghostHeight
         }
       } else {
@@ -182,16 +177,25 @@ var app = new Vue({
       // bug: caret shows in ``` code ```
       var _val = this.input
       this.$nextTick(function () {
-        var caret = CARET
-        // if (this.showRaw) {
-        //   caret = '|'
-        // }
         // https://stackoverflow.com/questions/2812253/invisible-delimiter-for-strings-in-html
-        var outputWithCaret = _val.splice(this.$refs.editor.selectionEnd, 0, '<span id="caret">&zwnj;</span>')
-        this.output = marked(outputWithCaret)
+        var invisibleCaret = '<span id="caret">&zwnj;</span>'
+        var outputWithCaret = _val.splice(this.$refs.editor.selectionEnd, 0, invisibleCaret)
+        var output = marked(outputWithCaret)
         // check all codeblocks and change to pre or something if contains zwnj
-        // this.ghostOutput = marked(outputWithCaret)
-
+        // check all code tags, replace caret with static shit
+        var outputDiv = document.createElement('div')
+        outputDiv.innerHTML = output
+        var codeTags = outputDiv.getElementsByTagName('code')
+        for (var i = 0; i < codeTags.length; i++) {
+          var escapedInviCaret = '&lt;span id="caret"&gt;&amp;zwnj;&lt;/span&gt;'
+          if (codeTags[i].innerHTML.indexOf(escapedInviCaret) > -1) {
+            var tempDiv = document.createElement('div')
+            tempDiv.className = 'fake-code'
+            tempDiv.innerHTML = codeTags[i].innerHTML.replace(escapedInviCaret, invisibleCaret)
+            codeTags[i].parentNode.replaceChild(tempDiv, codeTags[i])
+          }
+        }
+        this.output = outputDiv.innerHTML
         this.scrollToCaret()
       })
     },
