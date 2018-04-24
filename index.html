@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title></title>
+  <title>thoth - superior editor for your thoughts</title>
+  <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css">
   <link rel="stylesheet" type="text/css" href="main.css">
 </head>
@@ -22,6 +23,13 @@
           :style="{top: modal.data.top, left: modal.data.left}"
         >
           <ul>
+            <li>
+              <input
+                ref="modalInput"
+                type="text"
+                v-model="modal.data.input"
+                @keydown.enter.prevent="insertLink(modal.data.input, modal.data.selection)">
+            </li>
             <li v-for="content in modal.data.contents">
               <a href="#" @click.prevent="insertLink(store[content.ref].id, modal.data.selection)">{{store[content.ref].title}}</a>
             </li>
@@ -70,6 +78,7 @@
             class="raw overflow-y">{{output}}</div>
           <div
             v-else
+            contenteditable="true"
             ref="output"
             class="output overflow-y"
             v-html="output"></div>

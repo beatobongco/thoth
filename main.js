@@ -1,16 +1,10 @@
 /* TODO:
-MAKE NON DESTRUCTIVE CARET
-Make this usable not only for me (can load lunr lang)
-put line numbers
-1. localstorage autosave (snapshots and gallery)
-3. for selfsearch also `notes`, dont include stuff with no title
-4. keyboard control for selecting links after ctrl+O
-* allow custom links with ctrl+o
-6. ctrl+l for selecting lines like in sublime https://stackoverflow.com/questions/13650534/how-to-select-line-of-text-in-textarea
-
-* Make the textarea dark or a color that is more noticable and friendly to eyes
-   or dark theme
-   Bullet point a whole selection per line
+* Make this usable not only for me (can load lunr lang)
+* put line numbers
+* localstorage autosave (snapshots and gallery)
+* for selfsearch also `notes`, dont include stuff with no title
+* keyboard control for selecting links after ctrl+O
+* allow custom links with ctrl+o allow these links to include id's
 */
 
 // SETTINGS
@@ -54,7 +48,6 @@ var app = new Vue({
     toSearch: null,
     modal: null,
     store: null,
-    modalContents: null,
     lastPull: null,
     idx: null,
     showRaw: false,
@@ -276,17 +269,17 @@ var app = new Vue({
         var carcors = getCaretCoordinates(this.$refs.editor, this.$refs.editor.selectionEnd)
         var _top = document.querySelector('.main-col').getBoundingClientRect().top
         var results = this.idx.search(selectedText)
-        if (results.length > 0) {
-          this.modal = {
-            mode: mode,
-            data: {
-              selection: selectionObj,
-              contents: results,
-              top: carcors.top + _top - this.$refs.editor.scrollTop + 'px',
-              left: carcors.left + 'px'
-            }
+        this.modal = {
+          mode: mode,
+          data: {
+            input: '',
+            selection: selectionObj,
+            contents: results,
+            top: carcors.top + _top - this.$refs.editor.scrollTop + 'px',
+            left: carcors.left + 'px'
           }
         }
+        this.$nextTick(function () { this.$refs.modalInput.focus() })
       }
     },
     closeModal: function () {
