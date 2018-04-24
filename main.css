@@ -5,6 +5,7 @@ html {
 html,
 body,
 #app,
+.thoth-editor,
 .wrapper,
 .main-row,
 .editor {

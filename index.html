@@ -7,90 +7,17 @@
   <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
-  <div
-    id="app"
-    @keydown.esc.prevent="closeModal"
-  >
-    <div class="wrapper">
-      <div
-        class="modal-wrapper"
-        v-if="modal"
-        @click.self="closeModal"
-      >
-        <div
-          class="modal"
-          v-if="modal.mode === 'search'"
-          :style="{top: modal.data.top, left: modal.data.left}"
-        >
-          <ul>
-            <li>
-              <input
-                ref="modalInput"
-                type="text"
-                v-model="modal.data.input"
-                @keydown.enter.prevent="insertLink(modal.data.input, modal.data.selection)">
-            </li>
-            <li v-for="content in modal.data.contents">
-              <a href="#" @click.prevent="insertLink(store[content.ref].id, modal.data.selection)">{{store[content.ref].title}}</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-      <div class="offset-container">
-        <div class="flex">
-          <h1>thoth</h1>
-          <div class="last-pull" v-if="lastPull">
-            <small>
-              Search database: {{lastPull}}
-              <span v-if="autosaveDate">
-                | Last autosaved: {{autosaveDate}}
-              </span>
-            </small>
-          </div>
-        </div>
-      </div>
-      <div class="row main-row">
-        <div class="col-xs-12 col-sm-6 main-col">
-          <textarea
-            ref="editor"
-            class="editor overflow-y"
-            v-model="input"
-            @click="markedWithCaret"
-            @keydown="markedWithCaret"
-            @keydown.ctrl.shift.l="multilineFormat('* ')"
-            @keydown.tab.shift.prevent="multilineFormat('\t', doDelete=true)"
-            @keydown.tab.exact.prevent="multilineFormat('\t')"
-            @keydown.ctrl.b="formatText('**')"
-            @keydown.ctrl.i="formatText('*')"
-            @keydown.ctrl.191="formatText('\n```\n')"
-            @keydown.ctrl.k.prevent="triggerModal('search')"
-            @keydown.ctrl.l.prevent="highlightLine"
-            @keydown.ctrl.s.prevent="copyAndGo"
-            @keydown.ctrl.e.prevent="toggleRaw"
-            @blur="hideCaretClone"
-            @focus="markedWithCaret"
-          ></textarea>
-        </div>
-        <div class="col-xs-12 col-sm-6 main-col">
-          <div class="ghostCaret blinking-cursor" id="ghostCaret" :style="{top: caretPos.top, left: caretPos.left}">|</div>
-          <div
-            v-if="showRaw"
-            class="raw overflow-y">{{output}}</div>
-          <div
-            v-else
-            contenteditable="true"
-            ref="output"
-            class="output overflow-y"
-            v-html="output"></div>
-        </div>
-      </div>
-    </div>
+  <div id="app">
+    <thoth-editor v-if="mode === 'editor'"></thoth-editor>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.1.6/lunr.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.19/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js"></script>
 <script src="textarea-caret-position.js"></script>
+<script src="settings.js"></script>
+<script src="util.js"></script>
+<script src="thoth-editor.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
