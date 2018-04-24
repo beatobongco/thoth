@@ -1,4 +1,5 @@
 Vue.component('thoth-editor', {
+  props: ['mode'],
   data: function () {
     return {
       caretPos: {},
@@ -264,6 +265,7 @@ Vue.component('thoth-editor', {
   },
   template: `
   <div class="thoth-editor"
+    v-if="mode.startsWith('editor')"
     @keydown.esc.prevent="closeModal">
     <div class="wrapper">
       <div
