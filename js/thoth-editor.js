@@ -1,5 +1,5 @@
 Vue.component('thoth-editor', {
-  props: ['mode'],
+  props: ['mode', 'target'],
   data: function () {
     return {
       caretPos: {},
@@ -57,7 +57,15 @@ Vue.component('thoth-editor', {
       }, AUTOSAVE_INTERVAL)
     })
 
-    // query github
+    // query github if target prop exists
+
+    if (this.target) {
+      superagent
+        .get(this.target.download_url)
+        .then(function (res) {
+          this.input = res.text
+        }.bind(this))
+    }
 
     this.$refs.editor.focus()
   },
@@ -265,7 +273,6 @@ Vue.component('thoth-editor', {
   },
   template: `
   <div class="thoth-editor"
-    v-if="mode.startsWith('editor')"
     @keydown.esc.prevent="closeModal">
     <div class="wrapper">
       <div

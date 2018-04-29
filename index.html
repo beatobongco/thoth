@@ -7,20 +7,17 @@
   <link rel="stylesheet" type="text/css" href="css/main.css">
 </head>
 <body>
-  <div id="app">
-    <div v-if="mode === 'loader'">
-      I'm a loader
-    </div>
-    <thoth-editor :mode="mode"></thoth-editor>
-  </div>
+  <div id="app"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.1.6/lunr.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.19/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.7.1/localforage.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/superagent/3.8.2/superagent.min.js"></script>
 <script src="js/lib/textarea-caret-position.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/util.js"></script>
 <script src="js/thoth-editor.js"></script>
+<script src="js/github-loader.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
