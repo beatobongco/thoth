@@ -17,7 +17,7 @@ var app = new Vue({
   el: '#app',
   data: {
     mode: 'loader',
-    target: {}
+    target: null
   },
   methods: {
     setMode: function (mode) {
@@ -29,8 +29,8 @@ var app = new Vue({
   },
   template: `
     <div class="app">
-      <github-loader
-        v-if="mode === 'loader'"></github-loader>
+      <thoth-loader
+        v-if="mode === 'loader'"></thoth-loader>
       <thoth-editor
         v-if="mode === 'editor'"
         :target="target"></thoth-editor>

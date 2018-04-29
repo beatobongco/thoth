@@ -14,7 +14,15 @@ Vue.component('thoth-editor', {
       showRaw: false,
       input: '',
       output: '',
-      ghostOutput: ''
+      ghostOutput: '',
+    }
+  },
+  computed: {
+    postURL: function () {
+      if (this.target) {
+        return this.target.html_url.replace('/blob/', '/edit/')
+      }
+      return POST_URL
     }
   },
   watch: {
@@ -47,25 +55,40 @@ Vue.component('thoth-editor', {
         }
       })
 
+    let saveName = null
+    if (this.target) {
+      saveName = 'thoth-' + this.target.thothSource + '-' + this.target.name
+    } else {
+      saveName = 'thoth-local-' + cuid()
+    }
+    console.log(saveName)
+
+    let _this = this
+
     // get markdown data from localstorage
-    localforage.getItem('thoth', function (err, val) {
-      app.input = val
-      app.autosave = setInterval(function () {
-        localforage.setItem('thoth', app.input).then(function () {
-          app.autosaveDate = new Date().toLocaleString()
+    // prioritizes local savedata
+    // TODO: offer refresh/sync button with github
+    // that warns
+    localforage.getItem(saveName, function (err, val) {
+      if (val) {
+        _this.input = val
+      } else {
+        // query github if target prop exists
+        if (_this.target && _this.target.thothSource === 'github') {
+          superagent
+            .get(_this.target.download_url)
+            .then(function (res) {
+              _this.input = res.text
+            })
+        }
+      }
+      _this.autosave = setInterval(function () {
+        localforage.setItem(saveName, _this.input).then(function () {
+          _this.autosaveDate = new Date().toLocaleString()
         })
       }, AUTOSAVE_INTERVAL)
     })
 
-    // query github if target prop exists
-
-    if (this.target) {
-      superagent
-        .get(this.target.download_url)
-        .then(function (res) {
-          this.input = res.text
-        }.bind(this))
-    }
 
     this.$refs.editor.focus()
   },
@@ -73,6 +96,10 @@ Vue.component('thoth-editor', {
     this.updateCaretPos()
   },
   methods: {
+    goBack: function () {
+      app.setMode('loader')
+      app.setTarget(null)
+    },
     updateCaretPos: function () {
       var caret = document.getElementById('caret')
       if (caret) {
@@ -265,7 +292,7 @@ Vue.component('thoth-editor', {
     copyAndGo: function () {
       this.$refs.editor.select()
       document.execCommand('Copy')
-      window.open(POST_URL)
+      window.open(this.postURL)
     },
     toggleRaw: function () {
       this.showRaw = !this.showRaw
@@ -278,8 +305,7 @@ Vue.component('thoth-editor', {
       <div
         class="modal-wrapper"
         v-if="modal"
-        @click.self="closeModal"
-      >
+        @click.self="closeModal">
         <div
           class="modal"
           v-if="modal.mode === 'search'"
@@ -310,6 +336,9 @@ Vue.component('thoth-editor', {
               </span>
             </small>
           </div>
+        </div>
+        <div class="controls">
+          <button @click="goBack">Back</button>
         </div>
       </div>
       <div class="row main-row">

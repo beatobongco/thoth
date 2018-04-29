@@ -1,9 +1,9 @@
 /*
-  A component that allows you to do CRUD stuff from a
-  public github URL.
+  A component that allows you to do load stuff from a
+  public github URL as well as local storage.
 */
 
-Vue.component('github-loader', {
+Vue.component('thoth-loader', {
   data: function () {
     return {
       apiURL: API_URL,
@@ -23,11 +23,20 @@ Vue.component('github-loader', {
     },
     loadNote: function (note) {
       app.setMode('editor')
+      note['thothSource'] = 'github'
       app.setTarget(note)
+    },
+    createNew: function () {
+      app.setMode('editor')
     }
   },
   template: `
   <ul>
+    <li>
+      <a href="#" @click.prevent="createNew">
+        Create new note
+      </a>
+    </li>
     <li v-for="res in results">
       <a href="#"
         @click.prevent="loadNote(res)">
