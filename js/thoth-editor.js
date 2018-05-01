@@ -4,7 +4,6 @@ Vue.component('thoth-editor', {
     return {
       caretPos: {},
       autosave: null,
-      autosaving: false,
       autosaveDate: null,
       toSearch: null,
       modal: null,
@@ -15,14 +14,6 @@ Vue.component('thoth-editor', {
       input: '',
       output: '',
       ghostOutput: '',
-    }
-  },
-  computed: {
-    postURL: function () {
-      if (this.target) {
-        return this.target.html_url.replace('/blob/', '/edit/')
-      }
-      return POST_URL
     }
   },
   watch: {
