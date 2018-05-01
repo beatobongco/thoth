@@ -21,7 +21,7 @@ Vue.component('thoth-loader', {
       localforage.keys()
         .then(function (keys) {
           var localKeys = keys.filter(function (res) {
-            return res.includes(LOCAL_PREFIX)
+            return res.length > LOCAL_PREFIX.length && res.includes(LOCAL_PREFIX)
           })
           localKeys.forEach(function (key) {
             _this.results.push({
@@ -50,13 +50,15 @@ Vue.component('thoth-loader', {
       function _getData(note) {
         return new Promise(function (resolve) {
           if (note.thothSource === 'github') {
-            let _key = 'thoth-github-' + note.name
+            let _keyprefix = 'thoth-github-'
+            let _key = _keyprefix + note.name
             let _url = note.html_url.replace('/blob/', '/edit/')
             localforage
               .getItem(_key)
               .then(function (res) {
                 if (res) {
                   resolve({
+                    keyPrefix: _keyprefix,
                     key: _key,
                     content: res,
                     postURL: _url
@@ -66,6 +68,7 @@ Vue.component('thoth-loader', {
                     .get(note.download_url)
                     .then(function (res) {
                       resolve({
+                        keyPrefix: _keyPrefix,
                         key: _key,
                         content: res.text,
                         postURL: _url
@@ -78,6 +81,7 @@ Vue.component('thoth-loader', {
               .getItem(note.key)
               .then(function (res) {
                 resolve({
+                  keyPrefix: LOCAL_PREFIX,
                   key: note.key,
                   content: res,
                   postURL: ('https://github.com/beatobongco/TIL/new/master/day_notes?filename='
@@ -93,6 +97,7 @@ Vue.component('thoth-loader', {
         .then(function (res) {
           app.setMode('editor')
           app.setPost({
+            keyPrefix: res.keyPrefix,
             key: res.key,
             name: note.name,
             content: res.content,
@@ -104,6 +109,7 @@ Vue.component('thoth-loader', {
       app.setMode('editor')
       let id = cuid()
       app.setPost({
+        keyPrefix: LOCAL_PREFIX,
         key: LOCAL_PREFIX + id,
         name: id,
         content: '',

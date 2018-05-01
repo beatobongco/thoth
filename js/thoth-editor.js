@@ -11,20 +11,29 @@ Vue.component('thoth-editor', {
       lastPull: null,
       idx: null,
       showRaw: false,
-      input: '',
+      input: this.initialPost.content,
       output: '',
       ghostOutput: '',
       filename: this.initialPost.name,
+    }
+  },
+  computed: {
+    saveKey: function () {
+      return this.initialPost.keyPrefix + this.filename
+    },
+    postURL: function () {
+      return POST_URL + this.filename + '&message=Create ' + this.filename
     }
   },
   watch: {
     input: function () {
       this.markedWithCaret()
     },
-    filename: function (value) {
-      var prevVal = this.initialPost.name
-      this.initialPost.name
-      localforage.removeItem()
+    filename: function (newVal, oldVal) {
+      let _this = this
+      localforage.removeItem(this.initialPost.keyPrefix + oldVal).then(function() {
+        localforage.setItem(_this.initialPost.keyPrefix + newVal, _this.input)
+      })
     }
   },
   mounted: function () {
@@ -56,8 +65,6 @@ Vue.component('thoth-editor', {
 
     // TODO: offer refresh/sync button with github
     // that warns
-
-    this.input = this.initialPost.content
     this.autosave = setInterval(this.save, AUTOSAVE_INTERVAL)
     this.$refs.editor.focus()
   },
@@ -68,7 +75,7 @@ Vue.component('thoth-editor', {
     save: function () {
       let _this = this
       if (this.input && this.input.length > 0) {
-        localforage.setItem(_this.initialPost.key, _this.input).then(function () {
+        localforage.setItem(_this.saveKey, _this.input).then(function () {
           _this.autosaveDate = new Date().toLocaleString()
         })
       }
@@ -76,7 +83,7 @@ Vue.component('thoth-editor', {
     goBack: function () {
       this.save()
       app.setMode('loader')
-      app.setTarget(null)
+      app.setPost(null)
     },
     updateCaretPos: function () {
       var caret = document.getElementById('caret')
@@ -272,7 +279,7 @@ Vue.component('thoth-editor', {
     copyAndGo: function () {
       this.$refs.editor.select()
       document.execCommand('Copy')
-      window.open(this.initialPost.postURL)
+      window.open(this.postURL)
     },
     toggleRaw: function () {
       this.showRaw = !this.showRaw

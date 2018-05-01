@@ -8,8 +8,7 @@
 */
 
 /*
-  Main app should take care of initial loading stuff
-  And display thoth title / logo
+  Main app should display thoth title / logo
   Also hold mainstate
 */
 
@@ -33,7 +32,7 @@ var app = new Vue({
         v-if="mode === 'loader'"></thoth-loader>
       <thoth-editor
         v-if="mode === 'editor'"
-        :initial-post="post"></thoth-editor>
+        :initialPost="post"></thoth-editor>
     </div>
   `
 })
