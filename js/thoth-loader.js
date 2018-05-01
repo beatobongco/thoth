@@ -68,7 +68,7 @@ Vue.component('thoth-loader', {
                     .get(note.download_url)
                     .then(function (res) {
                       resolve({
-                        keyPrefix: _keyPrefix,
+                        keyPrefix: _keyprefix,
                         key: _key,
                         content: res.text,
                         postURL: _url

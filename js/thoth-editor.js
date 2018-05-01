@@ -22,6 +22,9 @@ Vue.component('thoth-editor', {
       return this.initialPost.keyPrefix + this.filename
     },
     postURL: function () {
+      if (this.filename === this.initialPost.name) {
+        return this.initialPost.postURL
+      }
       return POST_URL + this.filename + '&message=Create ' + this.filename
     }
   },
