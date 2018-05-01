@@ -17,14 +17,14 @@ var app = new Vue({
   el: '#app',
   data: {
     mode: 'loader',
-    target: null
+    post: null
   },
   methods: {
     setMode: function (mode) {
       this.mode = mode
     },
-    setTarget: function (target) {
-      this.target = target
+    setPost: function (post) {
+      this.post = post
     }
   },
   template: `
@@ -33,7 +33,7 @@ var app = new Vue({
         v-if="mode === 'loader'"></thoth-loader>
       <thoth-editor
         v-if="mode === 'editor'"
-        :target="target"></thoth-editor>
+        :initial-post="post"></thoth-editor>
     </div>
   `
 })

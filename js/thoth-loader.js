@@ -92,7 +92,7 @@ Vue.component('thoth-loader', {
       _getData(note)
         .then(function (res) {
           app.setMode('editor')
-          app.setTarget({
+          app.setPost({
             key: res.key,
             name: note.name,
             content: res.content,
@@ -103,7 +103,7 @@ Vue.component('thoth-loader', {
     createNew: function () {
       app.setMode('editor')
       let id = cuid()
-      app.setTarget({
+      app.setPost({
         key: LOCAL_PREFIX + id,
         name: id,
         content: '',

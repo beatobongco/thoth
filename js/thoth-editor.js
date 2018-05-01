@@ -1,5 +1,5 @@
 Vue.component('thoth-editor', {
-  props: ['mode', 'target'],
+  props: ['mode', 'initialPost'],
   data: function () {
     return {
       caretPos: {},
@@ -14,11 +14,17 @@ Vue.component('thoth-editor', {
       input: '',
       output: '',
       ghostOutput: '',
+      filename: this.initialPost.name,
     }
   },
   watch: {
     input: function () {
       this.markedWithCaret()
+    },
+    filename: function (value) {
+      var prevVal = this.initialPost.name
+      this.initialPost.name
+      localforage.removeItem()
     }
   },
   mounted: function () {
@@ -51,7 +57,7 @@ Vue.component('thoth-editor', {
     // TODO: offer refresh/sync button with github
     // that warns
 
-    this.input = this.target.content
+    this.input = this.initialPost.content
     this.autosave = setInterval(this.save, AUTOSAVE_INTERVAL)
     this.$refs.editor.focus()
   },
@@ -61,9 +67,8 @@ Vue.component('thoth-editor', {
   methods: {
     save: function () {
       let _this = this
-
       if (this.input && this.input.length > 0) {
-        localforage.setItem(_this.target.key, _this.input).then(function () {
+        localforage.setItem(_this.initialPost.key, _this.input).then(function () {
           _this.autosaveDate = new Date().toLocaleString()
         })
       }
@@ -267,7 +272,7 @@ Vue.component('thoth-editor', {
     copyAndGo: function () {
       this.$refs.editor.select()
       document.execCommand('Copy')
-      window.open(this.target.postURL)
+      window.open(this.initialPost.postURL)
     },
     toggleRaw: function () {
       this.showRaw = !this.showRaw
@@ -314,6 +319,7 @@ Vue.component('thoth-editor', {
         </div>
         <div class="controls">
           <button @click="goBack">Back</button>
+          <input type="text" v-model="filename">
         </div>
       </div>
       <div class="row main-row">
