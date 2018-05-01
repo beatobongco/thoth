@@ -109,10 +109,10 @@ h1 {
 }
 .raw {
   white-space: pre;
-  overflow-x: scroll;
+  overflow-x: auto;
 }
 pre {
-  overflow-x: scroll;
+  overflow-x: auto;
 }
 .cursor {
   font-weight: 600;
@@ -134,6 +134,10 @@ pre {
 }
 .last-pull {
   margin-left: 10px;
+}
+.loader {
+  overflow: auto;
+  max-height: 100%;
 }
 @-webkit-keyframes "blink" {
   from, to {

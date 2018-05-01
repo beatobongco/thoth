@@ -55,48 +55,30 @@ Vue.component('thoth-editor', {
         }
       })
 
-    let saveName = null
-    if (this.target) {
-      saveName = 'thoth-' + this.target.thothSource + '-' + this.target.name
-    } else {
-      saveName = 'thoth-local-' + cuid()
-    }
-    console.log(saveName)
-
     let _this = this
 
-    // get markdown data from localstorage
-    // prioritizes local savedata
     // TODO: offer refresh/sync button with github
     // that warns
-    localforage.getItem(saveName, function (err, val) {
-      if (val) {
-        _this.input = val
-      } else {
-        // query github if target prop exists
-        if (_this.target && _this.target.thothSource === 'github') {
-          superagent
-            .get(_this.target.download_url)
-            .then(function (res) {
-              _this.input = res.text
-            })
-        }
-      }
-      _this.autosave = setInterval(function () {
-        localforage.setItem(saveName, _this.input).then(function () {
-          _this.autosaveDate = new Date().toLocaleString()
-        })
-      }, AUTOSAVE_INTERVAL)
-    })
 
-
+    this.input = this.target.content
+    this.autosave = setInterval(this.save, AUTOSAVE_INTERVAL)
     this.$refs.editor.focus()
   },
   updated: function () {
     this.updateCaretPos()
   },
   methods: {
+    save: function () {
+      let _this = this
+
+      if (this.input && this.input.length > 0) {
+        localforage.setItem(_this.target.key, _this.input).then(function () {
+          _this.autosaveDate = new Date().toLocaleString()
+        })
+      }
+    },
     goBack: function () {
+      this.save()
       app.setMode('loader')
       app.setTarget(null)
     },
@@ -177,6 +159,8 @@ Vue.component('thoth-editor', {
         var output = marked(outputWithCaret)
         // check all codeblocks and change to pre or something if contains zwnj
         // check all code tags, replace caret with static shit
+        // TODO: insert mermaid if found <code class="lang-mermaid"></code>
+        // this means that drop-in highlighting libs can be used
         var outputDiv = document.createElement('div')
         outputDiv.innerHTML = output
         var codeTags = outputDiv.getElementsByTagName('code')
@@ -292,7 +276,7 @@ Vue.component('thoth-editor', {
     copyAndGo: function () {
       this.$refs.editor.select()
       document.execCommand('Copy')
-      window.open(this.postURL)
+      window.open(this.target.postURL)
     },
     toggleRaw: function () {
       this.showRaw = !this.showRaw
