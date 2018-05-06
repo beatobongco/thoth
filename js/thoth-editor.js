@@ -17,30 +17,20 @@ Vue.component('thoth-editor', {
       filename: this.initialPost.name,
     }
   },
-  computed: {
-    saveKey: function () {
-      return this.initialPost.keyPrefix + this.filename
-    },
-    postURL: function () {
-      if (this.filename === this.initialPost.name) {
-        return this.initialPost.postURL
-      }
-      return POST_URL + this.filename + '&message=Create ' + this.filename
-    }
-  },
   watch: {
     input: function () {
       this.markedWithCaret()
     },
     filename: function (newVal, oldVal) {
       let _this = this
-      localforage.removeItem(this.initialPost.keyPrefix + oldVal).then(function() {
-        localforage.setItem(_this.initialPost.keyPrefix + newVal, _this.input)
+      localforage.removeItem(this.initialPost.keyPrefix + oldVal).then(function () {
+        _this.save()
       })
     }
   },
   mounted: function () {
     // get lunr database for searching own notes
+    console.log(this.initialPost)
     let app = this
     localforage
       .getItem('lunr')
@@ -64,27 +54,56 @@ Vue.component('thoth-editor', {
         }
       })
 
-    let _this = this
-
     // TODO: offer refresh/sync button with github
     // that warns
     this.autosave = setInterval(this.save, AUTOSAVE_INTERVAL)
     this.$refs.editor.focus()
+
+    this.markedWithCaret()
+  },
+  beforeDestroy: function () {
+    clearTimeout(this.autosave)
+    this.autosave = null
   },
   updated: function () {
     this.updateCaretPos()
   },
   methods: {
-    save: function () {
+    getSaveKey: function () {
+      if (this.filename) {
+        return this.initialPost.keyPrefix + this.filename
+      }
+      return null
+    },
+    getPostURL: function () {
+      if (this.filename === this.initialPost.name) {
+        return this.initialPost.postURL
+      }
+      return POST_URL + this.filename + '&message=Create ' + this.filename
+    },
+    deleteNote: function () {
       let _this = this
-      if (this.input && this.input.length > 0) {
-        localforage.setItem(_this.saveKey, _this.input).then(function () {
+      console.log('deleting', this.getSaveKey())
+      localforage.removeItem(this.getSaveKey()).then(function () {
+        _this.goBack()
+      })
+    },
+    save: function () {
+      // only save when has a filename, autosave is active, and there is content on a non-default filename
+
+      if (this.getSaveKey() && this.autosave && this.input && this.input.length > 0) {
+        let _this = this
+        console.log('saving', _this.getSaveKey())
+        localforage.setItem(_this.getSaveKey(), _this.input).then(function () {
           _this.autosaveDate = new Date().toLocaleString()
         })
       }
     },
-    goBack: function () {
+    goBackAndSave: function () {
       this.save()
+      this.goBack()
+    },
+    goBack: function () {
       app.setMode('loader')
       app.setPost(null)
     },
@@ -156,30 +175,37 @@ Vue.component('thoth-editor', {
         // this.$refs.output.scrollTop
       }
     },
+    markedWithMermaid: function () {
+      this.output = marked(this.input)
+      this.$nextTick(function () {
+        mermaid.init(undefined, '.lang-mermaid')
+      })
+    },
     markedWithCaret: function () {
       var _val = this.input
-      this.$nextTick(function () {
-        // https://stackoverflow.com/questions/2812253/invisible-delimiter-for-strings-in-html
-        var invisibleCaret = '<span id="caret">&zwnj;</span>'
-        var outputWithCaret = _val.splice(this.$refs.editor.selectionEnd, 0, invisibleCaret)
-        var output = marked(outputWithCaret)
-        // check all codeblocks and change to pre or something if contains zwnj
-        // check all code tags, replace caret with static shit
-        // TODO: insert mermaid if found <code class="lang-mermaid"></code>
-        // this means that drop-in highlighting libs can be used
-        var outputDiv = document.createElement('div')
-        outputDiv.innerHTML = output
-        var codeTags = outputDiv.getElementsByTagName('code')
-        for (var i = 0; i < codeTags.length; i++) {
-          var escapedInviCaret = '&lt;span id="caret"&gt;&amp;zwnj;&lt;/span&gt;'
-          if (codeTags[i].innerHTML.indexOf(escapedInviCaret) > -1) {
-            var tempDiv = document.createElement('div')
-            tempDiv.className = 'fake-code'
-            tempDiv.innerHTML = codeTags[i].innerHTML.replace(escapedInviCaret, invisibleCaret)
-            codeTags[i].parentNode.replaceChild(tempDiv, codeTags[i])
-          }
+      // https://stackoverflow.com/questions/2812253/invisible-delimiter-for-strings-in-html
+      var invisibleCaret = '<span id="caret">&zwnj;</span>'
+      var outputWithCaret = _val.splice(this.$refs.editor.selectionEnd, 0, invisibleCaret)
+      var output = marked(outputWithCaret)
+      // check all codeblocks and change to pre or something if contains zwnj
+      // check all code tags, replace caret with static shit
+      // TODO: insert mermaid if found <code class="lang-mermaid"></code>
+      // this means that drop-in highlighting libs can be used
+      var outputDiv = document.createElement('div')
+      outputDiv.innerHTML = output
+      var codeTags = outputDiv.getElementsByTagName('code')
+      for (var i = 0; i < codeTags.length; i++) {
+        var escapedInviCaret = '&lt;span id="caret"&gt;&amp;zwnj;&lt;/span&gt;'
+        if (codeTags[i].innerHTML.indexOf(escapedInviCaret) > -1) {
+          var tempDiv = document.createElement('div')
+          tempDiv.className = 'fake-code'
+          tempDiv.innerHTML = codeTags[i].innerHTML .replace(escapedInviCaret, invisibleCaret)
+          codeTags[i].parentNode.replaceChild(tempDiv, codeTags[i])
         }
-        this.output = outputDiv.innerHTML
+      }
+      this.output = outputDiv.innerHTML
+      this.$nextTick(function () {
+        mermaid.init(undefined, '.lang-mermaid')
         this.scrollToCaret()
       })
     },
@@ -282,7 +308,7 @@ Vue.component('thoth-editor', {
     copyAndGo: function () {
       this.$refs.editor.select()
       document.execCommand('Copy')
-      window.open(this.postURL)
+      window.open(this.getPostURL())
     },
     toggleRaw: function () {
       this.showRaw = !this.showRaw
@@ -328,8 +354,12 @@ Vue.component('thoth-editor', {
           </div>
         </div>
         <div class="controls">
-          <button @click="goBack">Back</button>
+          <button @click="goBackAndSave">Back</button>
           <input type="text" v-model="filename">
+          <button
+            v-if="initialPost.thothSource === 'local'"
+            @click="deleteNote"
+            >Delete</button>
         </div>
       </div>
       <div class="row main-row">
@@ -340,6 +370,7 @@ Vue.component('thoth-editor', {
             v-model="input"
             @click="markedWithCaret"
             @keydown="markedWithCaret"
+            @focus="markedWithCaret"
             @keydown.ctrl.shift.l="multilineFormat('* ')"
             @keydown.tab.shift.prevent="multilineFormat('\t', doDelete=true)"
             @keydown.tab.exact.prevent="multilineFormat('\t')"
@@ -351,7 +382,6 @@ Vue.component('thoth-editor', {
             @keydown.ctrl.s.prevent="copyAndGo"
             @keydown.ctrl.e.prevent="toggleRaw"
             @blur="hideCaretClone"
-            @focus="markedWithCaret"
           ></textarea>
         </div>
         <div class="col-xs-12 col-sm-6 main-col">

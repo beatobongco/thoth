@@ -21,7 +21,7 @@ Vue.component('thoth-loader', {
       localforage.keys()
         .then(function (keys) {
           var localKeys = keys.filter(function (res) {
-            return res.length > LOCAL_PREFIX.length && res.includes(LOCAL_PREFIX)
+            return res.includes(LOCAL_PREFIX)
           })
           localKeys.forEach(function (key) {
             _this.results.push({
@@ -41,10 +41,7 @@ Vue.component('thoth-loader', {
               _this.results.push(res)
             })
           })
-
       })
-
-
     },
     loadNote: function (note) {
       function _getData(note) {
@@ -61,6 +58,7 @@ Vue.component('thoth-loader', {
                     keyPrefix: _keyprefix,
                     key: _key,
                     content: res,
+                    thothSource: note.thothSource,
                     postURL: _url
                   })
                 } else {
@@ -71,6 +69,7 @@ Vue.component('thoth-loader', {
                         keyPrefix: _keyprefix,
                         key: _key,
                         content: res.text,
+                        thothSource: note.thothSource,
                         postURL: _url
                       })
                     })
@@ -84,6 +83,7 @@ Vue.component('thoth-loader', {
                   keyPrefix: LOCAL_PREFIX,
                   key: note.key,
                   content: res,
+                  thothSource: note.thothSource,
                   postURL: ('https://github.com/beatobongco/TIL/new/master/day_notes?filename='
                             + note.name)
                 })
@@ -101,6 +101,7 @@ Vue.component('thoth-loader', {
             key: res.key,
             name: note.name,
             content: res.content,
+            thothSource: note.thothSource,
             postURL: res.postURL
           })
         })

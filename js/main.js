@@ -5,6 +5,7 @@
 * keyboard control for selecting links after ctrl+O
 * allow linking to self's id's (h1, h2)
 * implement mermaid and lang syntax highlighting
+* There's a save bug here
 */
 
 /*
