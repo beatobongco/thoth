@@ -30,7 +30,6 @@ Vue.component('thoth-editor', {
   },
   mounted: function () {
     // get lunr database for searching own notes
-    console.log(this.initialPost)
     let app = this
     localforage
       .getItem('lunr')
@@ -90,8 +89,10 @@ Vue.component('thoth-editor', {
     },
     save: function () {
       // only save when has a filename, autosave is active, and there is content on a non-default filename
-
-      if (this.getSaveKey() && this.autosave && this.input && this.input.length > 0) {
+      if (this.filename === this.initialPost.name && (!this.input || this.input.length === 0)) {
+        return
+      }
+      if (this.getSaveKey() && this.autosave) {
         let _this = this
         console.log('saving', _this.getSaveKey())
         localforage.setItem(_this.getSaveKey(), _this.input).then(function () {

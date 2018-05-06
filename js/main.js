@@ -1,11 +1,6 @@
 /* TODO:
 * Make this usable not only for me (can load lunr lang)
-* put line numbers
 * for selfsearch also `notes`, dont include stuff with no title
-* keyboard control for selecting links after ctrl+O
-* allow linking to self's id's (h1, h2)
-* implement mermaid and lang syntax highlighting
-* There's a save bug here
 */
 
 /*
