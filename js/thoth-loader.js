@@ -114,7 +114,7 @@ Vue.component('thoth-loader', {
         key: LOCAL_PREFIX + id,
         name: id,
         content: '',
-        postURL: 'https://github.com/beatobongco/TIL/new/master/day_notes?filename=' + id
+        postURL: POST_URL + id
       })
     }
   },
